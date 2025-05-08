@@ -1,6 +1,8 @@
 // Criado por: Guilherme José Almeida Nunes e Anderson André Ferreira Gomes
 // Disciplina: Computação Gráfica
 // Descrição: Simulação de um braço robótico 2D utilizando OpenGL e GLUT
+// Compilação: g++ -o main.exe main.cpp -I"./include" -L"./lib/x64" -lfreeglut -lopengl32 -lglu32 ou g++ -o main.exe main.cpp -I./include -L./lib/x64 -lfreeglut -lopengl32 -lglu32
+// Executar: ./main.exe ou main.exe no Windows
 
 #include <GL/glut.h>
 #include <math.h>
