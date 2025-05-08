@@ -136,15 +136,16 @@ void desenhaTexto(float x, float y, const char * texto) {
     }
 }
 
+
 // Função de exibição
 void display() {
     glClear(GL_COLOR_BUFFER_BIT);
     glLoadIdentity();
     desenhaBraco();
     glLoadIdentity(); // Reset para desenhar texto sem transformações
-    desenhaTexto(-390, 450, "Controles: A/D Base | W/S Braco | E/Q Antebraco | O/C Garra | Z/X Move Base | ESC Sair");
-    desenhaTexto(-390, 430, "Clique com o botão esquerdo para rotacionar segmentos(funcina basiado na altua do mouse).");
-    desenhaTexto(-390, 410, "Clique com o botão direito para resetar os angulos e a posicao do braço.");
+    desenhaTexto(-390, 450, "Controles: A/D Base | W/S Braço | E/Q Antebraço | O/C Garra | Z/X Move Base | ESC Sair");
+    desenhaTexto(-390, 430, "Clique nas juntas com o botão esquerdo para rotacionar segmentos.");
+    desenhaTexto(-390, 410, "Clique com o botão direito para resetar os ângulos e a posição do braço.");
     glutSwapBuffers();
 }
 
@@ -203,36 +204,50 @@ float screenToWorldY(int y) {
 
 // Função para gerenciar eventos do mouse
 void mouse(int button, int state, int x, int y) {
-    if(state == GLUT_DOWN && button == GLUT_RIGHT_BUTTON) {
-        // Reseta ângulos e posição
-        anguloBase = 0;
-        anguloBraco = 0;
-        anguloAntebraco = 0;
-        posX = 0;
-        aberturaGarra = 10;
-    }
+   
     if (state == GLUT_DOWN && button == GLUT_LEFT_BUTTON) {
         float mx = screenToWorldX(x);
         float my = screenToWorldY(y);
 
+        // Junta da base
+        float bx = posX;
+        float by = 20.0f;
+
+        // Junta do braço
+        float radBase = -anguloBase * M_PI / 180.0f;
+        float brx = bx + sin(radBase) * 100.0f;
+        float bry = by + cos(radBase) * 100.0f;
+
+        // Junta do antebraço
+        float radBraco = -anguloBraco * M_PI / 180.0f;
+        float totalAngle = radBase + radBraco;
+        float arx = brx + sin(totalAngle) * 80.0f;
+        float ary = bry + cos(totalAngle) * 80.0f;
+
+        // Distâncias para detectar o segmento mais próximo
+        float distBase = hypotf(mx - bx, my - by);
+        float distBraco = hypotf(mx - brx, my - bry);
+        float distAnte = hypotf(mx - arx, my - ary);
+
+        float minDist = 35.0f; // Distância mínima para considerar o clique em um segmento
         // Detectar região aproximada do segmento
-        if (my >= 20 && my <= 60) segmentoSelecionado = 0; // Base
-        else if (my >= 120 && my <= 200) segmentoSelecionado = 1; // Braço
-        else if (my >= 200 && my <= 280) segmentoSelecionado = 2; // Antebraço
+        if (distBase < minDist) segmentoSelecionado = 0; // Base
+        else if (distBraco < minDist) segmentoSelecionado = 1; // Braço
+        else if (distAnte < minDist) segmentoSelecionado = 2; // Antebraço
         else segmentoSelecionado = -1;
 
         // Define centro da rotação baseado no segmento
         if (segmentoSelecionado == 0) {
-            centroX = posX;
-            centroY = 20;
+            centroX = bx;
+            centroY = by;
             anguloOriginal = anguloBase;
         } else if (segmentoSelecionado == 1) {
-            centroX = posX;
-            centroY = 120;
+            centroX = brx;
+            centroY = bry;
             anguloOriginal = anguloBraco;
         } else if (segmentoSelecionado == 2) {
-            centroX = posX;
-            centroY = 200;
+            centroX = arx;
+            centroY = arx;
             anguloOriginal = anguloAntebraco;
         }
 
@@ -241,8 +256,14 @@ void mouse(int button, int state, int x, int y) {
     } else if (state == GLUT_UP) {
         segmentoSelecionado = -1;
     }
-}
 
+    if(state == GLUT_DOWN && button == GLUT_RIGHT_BUTTON) {
+        anguloBase = anguloBraco = anguloAntebraco = 0;
+        posX = 0;
+        aberturaGarra = 10;
+        segmentoSelecionado = -1;
+    }
+}
 
 
 // Função para gerenciar movimento do mouse
@@ -253,6 +274,9 @@ void motion(int x, int y) {
     float my = screenToWorldY(y);
     float anguloAtualMouse = atan2f(my - centroY, mx - centroX) * 180.0f / M_PI;
     float delta = anguloAtualMouse - anguloInicialMouse;
+    
+    if (delta > 180) delta -= 360;
+    if (delta < -180) delta += 360;
 
     // Aplica rotação ao segmento com limites
     if (segmentoSelecionado == 0) {
@@ -273,6 +297,8 @@ void motion(int x, int y) {
 }
 
 
+
+// Função de inicialização
 void init() {
     glClearColor(0.0, 0.0, 0.0, 1.0);
     glMatrixMode(GL_PROJECTION);
@@ -282,6 +308,7 @@ void init() {
     glLoadIdentity();
 }
 
+// Função principal
 int main(int argc, char** argv) {
     glutInit(&argc, argv);
     glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB);
